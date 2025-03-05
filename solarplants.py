@@ -1,45 +1,31 @@
 import streamlit as st
 import pandas as pd
-import pyodbc
+import os
 
-# Database connection function
-def get_db_connection():
-    conn = pyodbc.connect(
-        "Driver={SQL Server};"
-    "Server=10.88.0.107;"
-    "PORT=1433;"
-    "Database=Common_FuncDB;"
-    "UID=sa;"
-    "PWD=GG@cmcs#1;"
-    )
-    return conn
-
-# Fetch unique plant names from database (modify table name)
-def get_plant_names():
-    conn = get_db_connection()
-    query = "SELECT DISTINCT plant_name FROM Common_FuncDB.dbo.solar_plants_list"
-    df = pd.read_sql(query, conn)
-    conn.close()
+# Load plant names from Excel
+def get_plant_names_from_excel():
+    df = pd.read_excel("windplants.xlsx")  # Ensure the file is uploaded in the repo
     return df["plant_name"].tolist()
 
-# Function to save notes to database
-def save_plant_notes(plant_notes):
-    conn = get_db_connection()
-    cursor = conn.cursor()
+# Function to save notes to a CSV file
+def save_plant_notes_to_csv(plant_notes):
+    file_path = "plant_notes.csv"
 
-    for plant, note in plant_notes.items():
-        if note.strip():  # Save only if note is not empty
-            cursor.execute(
-                "INSERT INTO plant_notes (plant_name, note) VALUES (?, ?)",
-                (plant, note)
-            )
+    # Convert dictionary to DataFrame
+    data = [{"plant_name": plant, "note": note} for plant, note in plant_notes.items() if note.strip()]
+    
+    if os.path.exists(file_path):
+        existing_df = pd.read_csv(file_path)
+        df = pd.DataFrame(data)
+        df = pd.concat([existing_df, df], ignore_index=True)
+    else:
+        df = pd.DataFrame(data)
 
-    conn.commit()
-    conn.close()
+    df.to_csv(file_path, index=False)
 
-# Get plant names from database
-plant_names = get_plant_names()
-plant_names.insert(0, "All")  # Add "All" option at the top
+# Get plant names
+plant_names = get_plant_names_from_excel()
+plant_names.insert(0, "All")  # Add "All" option
 
 # Streamlit UI
 st.title("Plant Information Dashboard")
@@ -62,6 +48,5 @@ for plant in selected_plants:
 
 # Save button
 if st.button("Save Notes"):
-    save_plant_notes(plant_notes)
-    st.success("Notes saved successfully!")
-
+    save_plant_notes_to_csv(plant_notes)
+    st.success("Notes saved successfully! Check `plant_notes.csv` for records.")
