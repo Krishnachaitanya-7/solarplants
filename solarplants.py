@@ -79,7 +79,7 @@ def save_plant_notes(plant_notes):
 
 # Load plant names from an Excel sheet
 def load_plant_names():
-    excel_file = "plant_names.xlsx"  # Ensure this file exists
+    excel_file = "windplants.xlsx"  # Ensure this file exists
     df = pd.read_excel(excel_file)
     return df["plant_name"].tolist()
 
